@@ -11,7 +11,6 @@ except:
 	install('splinter')
 	from splinter import Browser
 
-from splinter.exceptions import ElementDoesNotExist
 
 try:
 	from selenium.webdriver.chrome.options import Options
@@ -158,13 +157,13 @@ def main():
 	browser = init_browser()
 
 	print('CUNY Transcript Web Scraper by @ericshermancs')
-	start = time.time()
+	#start = time.time()
 	try:
 		login(browser)
 		navigate(browser)
 		renamePDF(browser)
-		end = time.time()
-		print('Execution time:',end-start,'seconds')
+		#end = time.time()
+		#print('Execution time:',end-start,'seconds')
 	except:
 		pass
 	try:
