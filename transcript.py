@@ -1,16 +1,24 @@
-#!/usr/bin/env python
-import os, getpass, time, datetime
+#!/usr/bin/env python3
+import os, sys, getpass, time, datetime, pip
+from zipfile import ZipFile
+from io import BytesIO
+from urllib.request import urlopen
 
 def install(package):
 	if __name__ == '__main__':
 		pip.main(['install', package])
 
 try:
+	import requests
+except:
+	install('requests')
+	import requests
+
+try:
 	from splinter import Browser
 except:
 	install('splinter')
 	from splinter import Browser
-
 
 try:
 	from selenium.webdriver.chrome.options import Options
@@ -28,7 +36,7 @@ except:
 def init_browser():
 	working_directory = os.getcwd()
 	chrome_options = Options()
-	#chrome_options.add_argument("--no-sandbox")
+	#chrome_options.add_argument("--headless")
 	chrome_options.add_argument("--window-size=600,500")
 	
 	chrome_options.add_experimental_option('prefs', {
@@ -119,7 +127,7 @@ def navigate(browser):
 		'York College' : 'YRK01'
 		}
 
-		acad_inst.select('QNS01') 
+		acad_inst.select('QNS01') # change based on cuny
 
 
 		while True:
@@ -150,9 +158,45 @@ def renamePDF(browser):
 		time.sleep(.1)
 	print('Transcript successfully downloaded as {}'.format(timestamp))
 
+
+
+def install_chromedriver(): # untested
+	if sys.platform == 'linux' or sys.platform == 'linux2': #linux ftw
+		if not os.path.isfile('/usr/bin/chromedriver'):
+			print('Chrome driver is missing...')
+			print('Downloading chrome driver...')
+			zipurl = 'https://chromedriver.storage.googleapis.com/2.34/chromedriver_linux64.zip'
+			with urlopen(zipurl) as zipresp:
+				with ZipFile(BytesIO(zipresp.read())) as zfile:
+					zfile.extractall('/usr/bin')
+			print('Done downloading chrome driver')
+
+	elif sys.platform == 'darwin': # mac
+		if not os.path.isfile('/usr/bin/chromedriver'):
+			print('Chrome driver is missing...')
+			print('Downloading chrome driver...')
+			zipurl = 'https://chromedriver.storage.googleapis.com/2.34/chromedriver_mac64.zip'
+			with urlopen(zipurl) as zipresp:
+				with ZipFile(BytesIO(zipresp.read())) as zfile:
+					zfile.extractall('/usr/bin')
+			print('Done downloading chrome driver')
+
+	elif sys.platform == 'win32':
+		if not os.path.isfile(r'C:\Windows\chromedriver.exe'):
+			print('Chrome driver is missing...')
+			print('Downloading chrome driver...')
+			zipurl = 'https://chromedriver.storage.googleapis.com/2.34/chromedriver_win32.zip'
+			with urlopen(zipurl) as zipresp:
+				with ZipFile(BytesIO(zipresp.read())) as zfile:
+					zfile.extractall('C:\Windows')
+
+			print('Done downloading chrome driver')
+		
 def main():
 	display = Display(visible=0,size=(800,1200))
 	display.start()
+
+	install_chromedriver()
 
 	browser = init_browser()
 
@@ -170,11 +214,12 @@ def main():
 		browser.quit()
 	except:
 		pass
+	
 	try:
 		display.stop()
 	except:
 		pass
-
+	
 
 if __name__ == '__main__':
 	main()
