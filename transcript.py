@@ -25,12 +25,12 @@ try:
 except:
 	install('selenium')
 	from selenium.webdriver.chrome.options import Options
-
-try:
-	from pyvirtualdisplay import Display
-except:
-	install('pyvirtualdisplay')
-	from pyvirtualdisplay import Display
+if sys.platform == 'linux' or sys.platform == 'linux2':
+	try:
+		from pyvirtualdisplay import Display
+	except:
+		install('pyvirtualdisplay')
+		from pyvirtualdisplay import Display
 
 
 def init_browser():
@@ -193,8 +193,9 @@ def install_chromedriver(): # untested
 			print('Done downloading chrome driver')
 		
 def main():
-	display = Display(visible=0,size=(800,1200))
-	display.start()
+	if sys.platform == 'linux' or sys.platform == 'linux2':
+		display = Display(visible=0,size=(800,1200))
+		display.start()
 
 	install_chromedriver()
 
@@ -214,11 +215,11 @@ def main():
 		browser.quit()
 	except:
 		pass
-	
-	try:
-		display.stop()
-	except:
-		pass
+	if sys.platform == 'linux' or sys.platform == 'linux2':
+		try:
+			display.stop()
+		except:
+			pass
 	
 
 if __name__ == '__main__':
