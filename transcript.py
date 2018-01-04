@@ -68,6 +68,8 @@ def login(browser):
 			for line in f:
 				creds.append(line.strip())
 
+	if '@login.cuny.edu' not in username:
+		creds[0] += '@login.cuny.edu' #so user doesn't have to worry about whether to enter it or not
 	username_field.type(creds[0])
 	password_field.type(creds[1])
 	print('Logging in...')
