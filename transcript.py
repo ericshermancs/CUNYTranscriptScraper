@@ -68,6 +68,8 @@ def login(browser):
 			for line in f:
 				creds.append(line.strip())
 
+	if '@login.cuny.edu' in username:
+		username = username[0:-15]
 	username_field.type(creds[0])
 	password_field.type(creds[1])
 	print('Logging in...')
