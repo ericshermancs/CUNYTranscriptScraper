@@ -46,8 +46,11 @@ def init_browser():
         "default_directory"  : working_directory # i think chrome automatically makes this directory when saving?
 	    }
 	})
-
-	browser = Browser('chrome', options=chrome_options, headless=False)
+	try:
+		browser = Browser('chrome', options=chrome_options, headless=False)
+	except:
+		exec_path = {'executable_path' : os.getcwd()}
+		browser = Browser('chrome', options=chrome_options, headless=False,**exec_path)	
 	return browser
 
 def login(browser):
@@ -164,33 +167,33 @@ def renamePDF(browser):
 
 def install_chromedriver(): # untested
 	if sys.platform == 'linux' or sys.platform == 'linux2': #linux ftw
-		if not os.path.isfile('/usr/bin/chromedriver'):
+		if not os.path.isfile('/usr/bin/chromedriver') and not os.path.isfile('{}/chromedriver'.format(os.getcwd())):
 			print('Chrome driver is missing...')
 			print('Downloading chrome driver...')
 			zipurl = 'https://chromedriver.storage.googleapis.com/2.34/chromedriver_linux64.zip'
 			with urlopen(zipurl) as zipresp:
 				with ZipFile(BytesIO(zipresp.read())) as zfile:
-					zfile.extractall('/usr/bin')
+					zfile.extractall(os.getcwd())
 			print('Done downloading chrome driver')
 
 	elif sys.platform == 'darwin': # mac
-		if not os.path.isfile('/usr/bin/chromedriver'):
+		if not os.path.isfile('/usr/bin/chromedriver') and not os.path.isfile('{}/chromedriver'.format(os.getcwd())):
 			print('Chrome driver is missing...')
 			print('Downloading chrome driver...')
 			zipurl = 'https://chromedriver.storage.googleapis.com/2.34/chromedriver_mac64.zip'
 			with urlopen(zipurl) as zipresp:
 				with ZipFile(BytesIO(zipresp.read())) as zfile:
-					zfile.extractall('/usr/bin')
+					zfile.extractall(os.getcwd())
 			print('Done downloading chrome driver')
 
 	elif sys.platform == 'win32':
-		if not os.path.isfile(r'C:\Windows\chromedriver.exe'):
+		if not os.path.isfile(r'C:\Windows\chromedriver.exe') and not os.path.isfile('{}\\chromedriver.exe'.format(os.getcwd())):
 			print('Chrome driver is missing...')
 			print('Downloading chrome driver...')
 			zipurl = 'https://chromedriver.storage.googleapis.com/2.34/chromedriver_win32.zip'
 			with urlopen(zipurl) as zipresp:
 				with ZipFile(BytesIO(zipresp.read())) as zfile:
-					zfile.extractall('C:\Windows')
+					zfile.extractall(os.getcwd())
 
 			print('Done downloading chrome driver')
 		
@@ -199,7 +202,7 @@ def main():
 		display = Display(visible=0,size=(800,1200))
 		display.start()
 
-	#install_chromedriver()
+	install_chromedriver()
 
 	browser = init_browser()
 
