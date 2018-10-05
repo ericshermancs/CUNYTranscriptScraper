@@ -1,231 +1,166 @@
-#!/usr/bin/env python3
-import os, sys, getpass, time, datetime, pip
-from zipfile import ZipFile
-from io import BytesIO
-from urllib.request import urlopen
+import requests
+import getpass
+from lxml import html
+import re
+#from pprint import pprint
+import datetime
+import time
+import argparse
 
-def install(package):
-	if __name__ == '__main__':
-		pip.main(['install', package])
-
-try:
-	import requests
-except:
-	install('requests')
-	import requests
-
-try:
-	from splinter import Browser
-except:
-	install('splinter')
-	from splinter import Browser
-
-try:
-	from selenium.webdriver.chrome.options import Options
-except:
-	install('selenium')
-	from selenium.webdriver.chrome.options import Options
-if sys.platform == 'linux' or sys.platform == 'linux2':
-	try:
-		from pyvirtualdisplay import Display
-	except:
-		install('pyvirtualdisplay')
-		from pyvirtualdisplay import Display
+college_codes = {'BAR01': 'Baruch College', 'BMC01': 'Borough of Manhattan CC', 'BCC01': 'Bronx CC', 'BKL01': 'Brooklyn College', 'CTY01': 'City College', 'CSI01': 'College of Staten Island', 'GRD01': 'Graduate Center', 'NCC01': 'Guttman CC', 'HOS01': 'Hostos CC', 'HTR01': 'Hunter College', 'JJC01': 'John Jay College', 'KCC01': 'Kingsborough CC', 'LAG01': 'LaGuardia CC', 'LEH01': 'Lehman College', 'MHC01': 'Macaulay Honors College', 'MEC01': 'Medgar Evers College', 'NYT01': 'NYC College of Technology', 'QNS01': 'Queens College', 'QCC01': 'Queensborough CC', 'SOJ01': 'School of Journalism', 'SLU01': 'School of Labor&Urban Studies', 'LAW01': 'School of Law', 'MED01': 'School of Medicine', 'SPS01': 'School of Professional Studies', 'SPH01': 'School of Public Health', 'UAPC1': 'University Processing Center', 'YRK01': 'York College'}
 
 
-def init_browser():
-	working_directory = os.getcwd()
-	chrome_options = Options()
-	#chrome_options.add_argument("--headless")
-	chrome_options.add_argument("--window-size=600,500")
+def login(session,username,password):
+	print('[DEBUG] Logging in...')
+	session.get('https://home.cunyfirst.cuny.edu')
+
+	url = 'https://ssologin.cuny.edu/oam/server/auth_cred_submit'
+	data = {
+		'usernameH': f'{username}@login.cuny.edu',
+		'username': username,
+		'password': password,
+		'submit': ''
+	}
+
+	r = session.post(url,data=data)
+
+
+	url = 'https://hrsa.cunyfirst.cuny.edu/psc/cnyhcprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL?FolderPath=PORTAL_ROOT_OBJECT.HC_SSS_STUDENT_CENTER&IsFolder=false&IgnoreParamTempl=FolderPath%2cIsFolder&PortalActualURL=https%3a%2f%2fhrsa.cunyfirst.cuny.edu%2fpsc%2fcnyhcprd%2fEMPLOYEE%2fHRMS%2fc%2fSA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL&PortalContentURL=https%3a%2f%2fhrsa.cunyfirst.cuny.edu%2fpsc%2fcnyhcprd%2fEMPLOYEE%2fHRMS%2fc%2fSA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL&PortalContentProvider=HRMS&PortalCRefLabel=Student%20Center&PortalRegistryName=EMPLOYEE&PortalServletURI=https%3a%2f%2fhome.cunyfirst.cuny.edu%2fpsp%2fcnyepprd%2f&PortalURI=https%3a%2f%2fhome.cunyfirst.cuny.edu%2fpsc%2fcnyepprd%2f&PortalHostNode=EMPL&NoCrumbs=yes&PortalKeyStruct=yes'
+	r = session.get(url)
+	tree = html.fromstring(r.text)
+	encquery = tree.xpath('//*[@name="enc_post_data"]/@value')[0]
+
+	url = 'https://ssologin.cuny.edu/obrareq.cgi'
+	data = {
+		'enc_post_data' : encquery
+	}
+
+	r = session.post(url,data=data)
+	tree = html.fromstring(r.text)
+	encreply = tree.xpath('//*[@name="enc_post_data"]/@value')[0]
+
+	url = 'https://hrsa.cunyfirst.cuny.edu/obrar.cgi"'
+	data = {
+		'enc_post_data' : encreply
+	}
+	r = session.post(url,data=data)
+
+	url = 'https://hrsa.cunyfirst.cuny.edu/psc/cnyhcprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL?FolderPath=PORTAL_ROOT_OBJECT.HC_SSS_STUDENT_CENTER&IsFolder=false&IgnoreParamTempl=FolderPath%2cIsFolder&PortalActualURL=https%3a%2f%2fhrsa.cunyfirst.cuny.edu%2fpsc%2fcnyhcprd%2fEMPLOYEE%2fHRMS%2fc%2fSA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL&PortalContentURL=https%3a%2f%2fhrsa.cunyfirst.cuny.edu%2fpsc%2fcnyhcprd%2fEMPLOYEE%2fHRMS%2fc%2fSA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL&PortalContentProvider=HRMS&PortalCRefLabel=Student%20Center&PortalRegistryName=EMPLOYEE&PortalServletURI=https%3a%2f%2fhome.cunyfirst.cuny.edu%2fpsp%2fcnyepprd%2f&PortalURI=https%3a%2f%2fhome.cunyfirst.cuny.edu%2fpsc%2fcnyepprd%2f&PortalHostNode=EMPL&NoCrumbs=yes&PortalKeyStruct=yes'
+	r = session.get(url)
+	print('[DEBUG] Successfully logged in!')
+	return r
+
+
+def navigate(session, school):
+	print('[DEBUG] Beginning navigation to transcript section...')
+	url = 'https://hrsa.cunyfirst.cuny.edu/psc/cnyhcprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_TSRQST_UNOFF.GBL?Page=SSS_TSRQST_UNOFF&Action=A&EMPLID=&TargetFrameName=None'
+	r = session.get(url)
+	#print(r.text)
+	tree = html.fromstring(r.text)
+	data = {}
+	for el in tree.xpath('//input'):
+		name = ''.join(el.xpath('./@name'))
+		value = ''.join(el.xpath('./@value'))
+		#print(name,value)
+		data[name] = value
 	
-	chrome_options.add_experimental_option('prefs', {
-    "plugins.plugins_list": [{"enabled":False,"name":"Chrome PDF Viewer"}],
-    "download": {
-        "prompt_for_download": False,
-        "default_directory"  : working_directory # i think chrome automatically makes this directory when saving?
-	    }
-	})
-	try:
-		browser = Browser('chrome', options=chrome_options, headless=False)
-	except:
-		exec_path = {'executable_path' : os.getcwd()}
-		browser = Browser('chrome', options=chrome_options, headless=False,**exec_path)	
-	return browser
+	data['ICAJAX'] = '1'
+	data['ICNAVTYPEDROPDOWN'] = '1'
+	data['ICYPos'] = '144'
+	data['ICStateNum'] = '1'
+	data['ICAction'] = 'DERIVED_SSS_SCR_SSS_LINK_ANCHOR4'
+	data['ICBcDomData'] = 'C~HC_SSS_STUDENT_CENTER~EMPLOYEE~HRMS~SA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL~UnknownValue~Student Center~UnknownValue~UnknownValue~https://home.cunyfirst.cuny.edu/psp/cnyepprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL~UnknownValue'
+	data['DERIVED_SSS_SCL_SSS_MORE_ACADEMICS'] = '9999'
+	data['DERIVED_SSS_SCL_SSS_MORE_FINANCES'] = '9999'
+	data['CU_SF_SS_INS_WK_BUSINESS_UNIT'] = school
+	data['DERIVED_SSS_SCL_SSS_MORE_PROFILE'] = '9999'
 
-def login(browser):
-	print('Visiting homepage...')
-	browser.visit("http://home.cunyfirst.cuny.edu")
+	#pprint(data)
+
+	url = 'https://hrsa.cunyfirst.cuny.edu/psc/cnyhcprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL'
+	r = session.post(url,data=data)
+	print('[DEBUG] 1/5 requests completed...')
+
+	session.get('https://hrsa.cunyfirst.cuny.edu/psc/cnyhcprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_MY_ACAD.GBL?Page=SSS_MY_ACAD&Action=U&ExactKeys=Y&TargetFrameName=None')
 	
-	username_field = browser.find_by_id(id='CUNYfirstUsernameH').first
-	password_field = browser.find_by_id(id='CUNYfirstPassword').first
+	data['ICStateNum'] = '3'
+	data['ICAction'] = 'DERIVED_SSSACA2_SS_UNOFF_TRSC_LINK'
+	data['ICYPos'] = '95'
+	data['DERIVED_SSTSNAV_SSTS_MAIN_GOTO$7$'] = '9999'
+	data['DERIVED_SSTSNAV_SSTS_MAIN_GOTO$8$'] = '9999'
 
-	creds = []
+	r = session.post(url, data = data)
+	print('[DEBUG] 2/5 requests completed...')
 
-	if not os.path.isfile('credentials.txt'):
-		print('FOR AUTOMATIC LOGIN, PLEASE ENTER YOUR CREDENTIALS IN credentials.txt')
-		creds.append(input('Username: ').strip())
-		creds.append(getpass.getpass('Password: ').strip())
-	else:
-		with open('credentials.txt','r+') as f:
-			for line in f:
-				creds.append(line.strip())
+	url = re.search(r'document\.location=\'(https://hrsa.cunyfirst.cuny.edu/psc/cnyhcprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_TSRQST_UNOFF\.GBL\?Page=SSS_TSRQST_UNOFF&Action=A&EMPLID=\d+&TargetFrameName=None)',r.text).group(1)
 
-	if '@login.cuny.edu' in creds[0]:
-		creds[0] = creds[0][:-15]
-	username_field.type(creds[0])
-	password_field.type(creds[1])
-	print('Logging in...')
-	submit_login = browser.find_by_id(id='submit').first
-	submit_login.click()
-	if browser.url == 'https://ssologin.cuny.edu/unrecognized-credentials.html?p_error_code=OAM-5':
-		print('Invalid credentials. Exiting program...')
-		exit(0)
-	browser.visit("http://home.cunyfirst.cuny.edu") # sometimes there are weird errors
+	session.get(url)
 
+	data['ICStateNum'] = '5'
+	data['ICAction'] = 'SA_REQUEST_HDR_INSTITUTION'
+	data['ICYPos'] ='115'
+	data['ICBcDomData'] = 'C~HC_SSS_TSRQST_UNOFF_GBL~EMPLOYEE~HRMS~SA_LEARNER_SERVICES.SSS_TSRQST_UNOFF.GBL~UnknownValue~View Unofficial Transcript~UnknownValue~UnknownValue~https://home.cunyfirst.cuny.edu/psp/cnyepprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_TSRQST_UNOFF.GBL~UnknownValue*C~HC_SSS_STUDENT_CENTER~EMPLOYEE~HRMS~SA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL~UnknownValue~Student Center~UnknownValue~UnknownValue~https://home.cunyfirst.cuny.edu/psp/cnyepprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_STUDENT_CENTER.GBL~UnknownValue'
+	data['DERIVED_SSTSRPT_TSCRPT_TYPE3'] = ''
+	data['ptus_componenturl'] = 'https://hrsa.cunyfirst.cuny.edu/psp/cnyhcprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_TSRQST_UNOFF.GBL'
 
-def navigate(browser):
-	print('Visiting \"Student Center\"...')
-	browser.click_link_by_text('Student Center')
-	while browser.is_element_not_present_by_id('ptifrmtgtframe'): # wait for frame
-		time.sleep(.1)
+	r = session.post(url,data=data)
+	print('[DEBUG] 3/5 requests completed...')
+	#pprint(data)
+	#print(r.text)
 
-	with browser.get_iframe('ptifrmtgtframe') as frame:
-		print('Visiting \"My Academics\"...')
-		frame.click_link_by_text('My Academics')
+	data['ICStateNum'] = '6'
 
-		while frame.is_element_not_present_by_text('View my unofficial transcript'): #wait for it to show up
-			time.sleep(.1)
-		print('Visiting \"View my unofficial transcript\"...')
-		frame.click_link_by_text('View my unofficial transcript') 
+	r = session.post(url,data=data)
+	print('[DEBUG] 4/5 requests completed...')
+	#pprint(data)
+	#print(r.text)
 
-		while frame.is_element_not_present_by_id('SA_REQUEST_HDR_INSTITUTION'):
-			time.sleep(.1)
-		print("Entering transcript request...")
-		acad_inst = frame.find_by_id('SA_REQUEST_HDR_INSTITUTION').first
+	data['ICStateNum'] = '7'
+	data['ICAction'] = 'GO'
+	data['SA_REQUEST_HDR_INSTITUTION'] = school
+	data['DERIVED_SSTSRPT_TSCRPT_TYPE3'] = 'STDNT'
 
+	r = session.post(url,data=data)
+	print('[DEBUG] 5/5 requests completed...')
+	print('[DEBUG] Retrieving PDF from URL...')
+	#pprint(data)
+	#print(r.text)
 
-		cuny_college_codes = {
-		'Baruch College' : 'BAR01',
-		'Borough of Manhattan CC' : 'BMC01',
-		'Bronx CC' : 'BCC01',
-		'Brooklyn College' : 'BKL01',
-		'CUNY School of Law' : 'LAW01',
-		'CUNY School of Medicine' : 'MED01',
-		'Cuny School of Public Health' : 'SPH01',
-		'City College' : 'CTY01',
-		'College of Staten Island' : 'CSI01',
-		'Guttman CC' : 'NCC01',
-		'Hostos CC' : 'HOS01',
-		'Hunter College' : 'HTR01',
-		'John Jay College' : 'JJC01',
-		'Kingsborough CC' : 'KCC01',
-		'LaGuardia CC' : 'LAG01',
-		'Lehman College' : 'LEH01',
-		'Medgar Evers College' : 'MEC01',
-		'NYC College of Technology' : 'NYT01',
-		'Queens College' : 'QNS01',
-		'Queensborough CC' : 'QCC01',
-		'School of Professional Studies' : 'SPS01',
-		'The Graduate Center' : 'GRD01',
-		'University Admissions' : 'UAPC1',
-		'York College' : 'YRK01'
-		}
-
-		acad_inst.select('QNS01') # change based on cuny
-
-
-		while True:
-			try:
-				rep_type = frame.find_by_id('DERIVED_SSTSRPT_TSCRPT_TYPE3').first
-				rep_type.select('STDNT')
-				break
-			except:
-				pass
-		print('Selecting \"View Report\"...')
-		time.sleep(2)
-		while True:
-			try:
-				frame.click_link_by_id('GO')
-			except:
-				break
-			time.sleep(.1)
-
-def renamePDF(browser):
-	while not os.path.isfile('SSR_TSRPT.pdf'):
-		time.sleep(.1)
-	while os.path.getsize('SSR_TSRPT.pdf') == 0:
-		time.sleep(.1)
+	pdfurl = re.search(r'window.open\(\'(https://hrsa\.cunyfirst\.cuny\.edu/psc/.*\.pdf)',r.text).group(1)
+	#print(pdfurl)
+	r = session.get(pdfurl)
+	print('[DEBUG] Successfully retrieved PDF!')
+	#print(r.headers)
 	now = datetime.datetime.now()
 	timestamp = now.strftime('Transcript_%m-%d-%Y_%H%M.pdf')
-	os.rename('SSR_TSRPT.pdf',timestamp)
-	while os.path.getsize(timestamp) == 0:
-		time.sleep(.1)
-	print('Transcript successfully downloaded as {}'.format(timestamp))
 
+	with open(timestamp,'wb') as f:
+		f.write(r.content)
 
-
-def install_chromedriver(): # untested
-	if sys.platform == 'linux' or sys.platform == 'linux2': #linux ftw
-		if not os.path.isfile('/usr/bin/chromedriver') and not os.path.isfile('{}/chromedriver'.format(os.getcwd())):
-			print('Chrome driver is missing...')
-			print('Downloading chrome driver...')
-			zipurl = 'https://chromedriver.storage.googleapis.com/2.34/chromedriver_linux64.zip'
-			with urlopen(zipurl) as zipresp:
-				with ZipFile(BytesIO(zipresp.read())) as zfile:
-					zfile.extractall(os.getcwd())
-			print('Done downloading chrome driver')
-
-	elif sys.platform == 'darwin': # mac
-		if not os.path.isfile('/usr/bin/chromedriver') and not os.path.isfile('{}/chromedriver'.format(os.getcwd())):
-			print('Chrome driver is missing...')
-			print('Downloading chrome driver...')
-			zipurl = 'https://chromedriver.storage.googleapis.com/2.34/chromedriver_mac64.zip'
-			with urlopen(zipurl) as zipresp:
-				with ZipFile(BytesIO(zipresp.read())) as zfile:
-					zfile.extractall(os.getcwd())
-			print('Done downloading chrome driver')
-
-	elif sys.platform == 'win32':
-		if not os.path.isfile(r'C:\Windows\chromedriver.exe') and not os.path.isfile('{}\\chromedriver.exe'.format(os.getcwd())):
-			print('Chrome driver is missing...')
-			print('Downloading chrome driver...')
-			zipurl = 'https://chromedriver.storage.googleapis.com/2.34/chromedriver_win32.zip'
-			with urlopen(zipurl) as zipresp:
-				with ZipFile(BytesIO(zipresp.read())) as zfile:
-					zfile.extractall(os.getcwd())
-
-			print('Done downloading chrome driver')
-		
-def main():
-	if sys.platform == 'linux' or sys.platform == 'linux2':
-		display = Display(visible=0,size=(800,1200))
-		display.start()
-
-	install_chromedriver()
-
-	browser = init_browser()
-
-	print('CUNY Transcript Web Scraper by @ericshermancs')
-	#start = time.time()
-	try:
-		login(browser)
-		navigate(browser)
-		renamePDF(browser)
-		#end = time.time()
-		#print('Execution time:',end-start,'seconds')
-	except:
-		pass
-	try:
-		browser.quit()
-	except:
-		pass
-	if sys.platform == 'linux' or sys.platform == 'linux2':
-		try:
-			display.stop()
-		except:
-			pass
-	
+	print(f'[DEBUG] Transcript saved as {timestamp}')
 
 if __name__ == '__main__':
-	main()
+	parser = argparse.ArgumentParser(description='Specify commands for CUNY Transcript Retriever v2.0')
+	parser.add_argument('--school',default="QNS01")
+	parser.add_argument('--list-codes',action='store_true')
+	args = parser.parse_args()
+
+
+	session = requests.Session()
+	print('CUNY Transcript Retriever v2.0 by @ericshermancs')
+	if args.list_codes:
+		print('LIST OF COLLEGES AND CODES:')
+		for code in college_codes:
+			print(college_codes[code],':',code)
+
+		exit(0)
+
+	print(f'[DEBUG] College to retrieve transcript from: {college_codes[args.school.upper()]}')
+	username = input("Enter username: ")
+	password = getpass.getpass("Enter password: ")
+
+	start = time.time()
+	login(session,username,password)
+	navigate(session,args.school.upper())
+	end = time.time()
+	print(f'[DEBUG] Program completed in {end-start} seconds')
