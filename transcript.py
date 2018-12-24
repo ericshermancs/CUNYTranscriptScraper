@@ -17,6 +17,7 @@ def login(session,username,password):
 
 	# Log in by posting to the url that accepts the username and password
 	url = 'https://ssologin.cuny.edu/oam/server/auth_cred_submit'
+	username = re.sub(r'@login\.cuny\.edu','',username)
 	data = {
 		'usernameH': f'{username}@login.cuny.edu',
 		'username': username,
@@ -59,7 +60,7 @@ def login(session,username,password):
 	return r
 
 
-def navigate(session, school):
+def navigate(session, school,filename):
 	print('[DEBUG] Beginning navigation to transcript section...')
 	# go to transcript request page without properly navigating, throw an error and get the values of the hidden form
 	url = 'https://hrsa.cunyfirst.cuny.edu/psc/cnyhcprd/EMPLOYEE/HRMS/c/SA_LEARNER_SERVICES.SSS_TSRQST_UNOFF.GBL?Page=SSS_TSRQST_UNOFF&Action=A&EMPLID=&TargetFrameName=None'
@@ -152,17 +153,20 @@ def navigate(session, school):
 	
 	# save the retrieved resource as a pdf on the local machine
 	now = datetime.datetime.now()
-	timestamp = now.strftime('Transcript_%m-%d-%Y_%H%M.pdf')
+	timestamp = f'public_html/transcript/{filename}' #now.strftime(f'public_html/transcript/{'Transcript_%m-%d-%Y_%H%M.pdf' if not filename else filename} ') 
 
 	with open(timestamp,'wb') as f:
 		f.write(r.content)
 
-	print(f'[DEBUG] Transcript saved as {timestamp}')
+	#print(f'[DEBUG] Transcript saved as {timestamp}')
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Specify commands for CUNY Transcript Retriever v2.0')
 	parser.add_argument('--school',default="QNS01")
 	parser.add_argument('--list-codes',action='store_true')
+	parser.add_argument('--username')
+	parser.add_argument('--password')
+	parser.add_argument('--filename')
 	args = parser.parse_args()
 
 
@@ -170,17 +174,17 @@ if __name__ == '__main__':
 	print('CUNY Transcript Retriever v2.0 by @ericshermancs')
 	if args.list_codes:
 		print('LIST OF COLLEGES AND CODES:')
-		for code in college_codes:
-			print(college_codes[code],':',code)
+		for code,name in college_codes.items():
+			print(name,':',code)
 
 		exit(0)
 
 	print(f'[DEBUG] College to retrieve transcript from: {college_codes[args.school.upper()]}')
-	username = input("Enter username: ")
-	password = getpass.getpass("Enter password: ")
+	username = input("Enter username: ") if not args.username else args.username
+	password = getpass.getpass("Enter password: ") if not args.password else args.password
 
 	start = time.time()
 	login(session,username,password)
-	navigate(session,args.school.upper())
+	navigate(session,args.school.upper(),args.filename)
 	end = time.time()
 	print(f'[DEBUG] Program completed in {end-start} seconds')
